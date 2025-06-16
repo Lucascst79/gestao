@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão Integrado</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --sidebar-bg: #111827;
+            --sidebar-link-color: #9ca3af;
+            --sidebar-link-hover-bg: #1f2937;
+            --sidebar-link-active-bg: #4f46e5;
+            --page-bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --primary-color: #4f46e5;
+            --success-color: #16a34a;
+            --danger-color: #dc2626;
+            --text-dark: #111827;
+            --text-light: #6b7280;
+            --border-color: #e5e7eb;
+            --border-radius: 0.75rem;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: var(--page-bg);
+        }
+        .app-wrapper {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-sidebar {
+            width: 250px;
+            background-color: var(--sidebar-bg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            color: white;
+            transition: transform 0.3s ease-in-out;
+        }
+        #app-sidebar .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        #app-sidebar nav { flex-grow: 1; }
+        #app-sidebar nav a {
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+            color: var(--sidebar-link-color); text-decoration: none; border-radius: 8px;
+            margin-bottom: 8px; font-weight: 500; transition: background-color 0.2s, color 0.2s;
+        }
+        #app-sidebar nav a:hover { background-color: var(--sidebar-link-hover-bg); color: white; }
+        #app-sidebar nav a.active { background-color: var(--sidebar-link-active-bg); color: white; }
+        
+        #user-profile {
+            padding-top: 16px; border-top: 1px solid #374151; display: flex;
+            align-items: center; gap: 12px;
+        }
+        #user-profile img { width: 40px; height: 40px; border-radius: 50%; }
+        #user-profile .user-info p { margin: 0; }
+        #user-profile .user-info .user-name { font-weight: 600; }
+        #user-profile .user-info .user-logout { font-size: 0.8rem; color: var(--sidebar-link-color); cursor: pointer; }
+        #user-profile .user-info .user-logout:hover { text-decoration: underline; }
+
+        #app-content {
+            flex-grow: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card {
+            background-color: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--shadow);
+            border: 1px solid var(--border-color); margin-bottom: 24px;
+        }
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between; padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .card-title { font-size: 1.25rem; font-weight: 700; color: var(--text-dark); margin: 0; }
+        .card-content { padding: 24px; }
+        
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px; color: white;
+            border: none; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        
+        /* --- Login Page --- */
+        #login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            background-color: var(--sidebar-bg);
+            text-align: center;
+            color: white;
+        }
+        #login-box {
+            padding: 40px;
+        }
+        #login-box h1 { font-size: 3rem; font-weight: 800; }
+        #login-box p { font-size: 1.25rem; color: var(--sidebar-link-color); margin-bottom: 40px; }
+        #login-button {
+            background-color: white; color: var(--text-dark); padding: 16px 32px; font-size: 1.1rem;
+            border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        /* Estilos do Financeiro */
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
+        .summary-box { padding: 20px; border-radius: var(--border-radius); text-align: left; }
+        .summary-box h3 { font-size: 0.9rem; color: var(--text-light); margin: 0 0 8px 0; font-weight: 500; }
+        .summary-box p { font-size: 2rem; font-weight: 700; color: var(--text-dark); margin: 0; letter-spacing: -0.05em; }
+        .summary-box.balance { background-color: #e0e7ff; }
+        .summary-box.revenue { background-color: #dcfce7; }
+        .summary-box.expense { background-color: #fee2e2; }
+        .summary-box.balance p { color: #3730a3; }
+        .summary-box.revenue p { color: #166534; }
+        .summary-box.expense p { color: #991b1b; }
+        .filters { display: flex; gap: 16px; align-items: center; }
+        .filters select { padding: 8px; font-size: 0.9rem; border-radius: 8px; border: 1px solid var(--border-color); }
+        .btn-export { background-color: var(--text-light); }
+        .charts-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 24px; }
+        @media (min-width: 768px) { .charts-grid { grid-template-columns: 2fr 1fr; } }
+        .chart-container { position: relative; height: 350px; width: 100%; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .form-group label { display: block; font-weight: 500; color: var(--text-dark); margin-bottom: 8px; font-size: 0.875rem; }
+        .form-group input, .form-group select { width: 100%; padding: 12px 16px; font-size: 1rem; border: 1px solid #cbd5e1; border-radius: 8px; }
+        .type-toggle { display: flex; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        .type-toggle-btn { flex: 1; padding: 12px; border: none; background-color: #f8fafc; cursor: pointer; font-weight: 500; color: var(--text-light); }
+        .type-toggle-btn.active.revenue { background-color: var(--success-color); color: white; }
+        .type-toggle-btn.active.expense { background-color: var(--danger-color); color: white; }
+        .transaction-table { width: 100%; border-collapse: collapse; }
+        .transaction-table th, .transaction-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .transaction-table th { font-size: 0.8rem; color: var(--text-light); text-transform: uppercase; }
+        .transaction-table .value-cell { font-weight: 600; text-align: right; }
+        .transaction-table .revenue { color: var(--success-color); }
+        .transaction-table .expense { color: var(--danger-color); }
+        .action-buttons { display: flex; gap: 4px; justify-content: flex-end; }
+        .action-buttons button { background: none; border: none; cursor: pointer; color: var(--text-light); }
+
+        #menu-toggle { display: none; position: fixed; top: 20px; left: 20px; z-index: 1000; background: var(--sidebar-bg); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; }
+        @media (max-width: 768px) {
+            #menu-toggle { display: block; }
+            #app-sidebar { position: fixed; transform: translateX(-100%); z-index: 999; height: 100%; }
+            #app-sidebar.open { transform: translateX(0); }
+            #app-content { padding: 80px 16px 16px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-page">
+        <div id="login-box">
+            <h1>Bem-vindo ao GestãoPRO</h1>
+            <p>Seu sistema de gestão completo. Entre para continuar.</p>
+            <button id="login-button" class="btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.94 14.06c-.13-1.4-.83-2.65-1.89-3.62a4.5 4.5 0 0 0-6.36-6.36 4.5 4.5 0 0 0-6.36 6.36C5.23 11.41 4.53 12.66 4.4 14.06"/><path d="M12 18.01V22"/><path d="M4.6 18a8.04 8.04 0 0 1-1.6-4H2"/><path d="M22 14h-1a8.04 8.04 0 0 0-1.6-4"/></svg>
+                Entrar com Google
+            </button>
+        </div>
+    </div>
+
+    <div class="app-wrapper" id="app-wrapper" style="display: none;">
+        <aside id="app-sidebar">
+            <div class="logo">GestãoPRO</div>
+            <nav>
+                <a href="#" class="active" onclick="app.switchPage('dashboard', this)">Dashboard</a>
+                <a href="#" onclick="app.switchPage('financeiro', this)">Financeiro</a>
+                <a href="#" onclick="app.switchPage('orcamentos', this)">Orçamentos</a>
+            </nav>
+            <div id="user-profile">
+                <img id="user-photo" src="">
+                <div class="user-info">
+                    <p id="user-name" class="user-name"></p>
+                    <a id="logout-button" class="user-logout">Sair</a>
+                </div>
+            </div>
+        </aside>
+
+        <main id="app-content">
+            <button id="menu-toggle">Menu</button>
+            <div id="page-dashboard" class="page active"></div>
+            <div id="page-financeiro" class="page"></div>
+            <div id="page-orcamentos" class="page"></div>
+        </main>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // SUA CHAVE DE CONFIGURAÇÃO DO FIREBASE JÁ ESTÁ AQUI
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4VWsuVh6G7wzncpZdRLQ5W1e1I1ZlatE",
+            authDomain: "sistema-financeiro-dd23b.firebaseapp.com",
+            projectId: "sistema-financeiro-dd23b",
+            storageBucket: "sistema-financeiro-dd23b.appspot.com",
+            messagingSenderId: "54965765424",
+            appId: "1:54965765424:web:bef5a29547079f901334f5",
+            measurementId: "G-B8FBB7ZWQ1"
+        };
+        
+        const appFirebase = initializeApp(firebaseConfig);
+        const db = getFirestore(appFirebase);
+        const auth = getAuth(appFirebase);
+        const provider = new GoogleAuthProvider();
+
+        // NÚCLEO DA APLICAÇÃO (APP)
+        const app = (() => {
+            let state = { user: null, transactions: [] };
+
+            const switchPage = (pageId, element) => {
+                document.querySelectorAll('#app-sidebar nav a').forEach(a => a.classList.remove('active'));
+                element?.classList.add('active');
+                
+                document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+                document.getElementById(`page-${pageId}`).classList.add('active');
+                
+                document.getElementById('app-sidebar').classList.remove('open');
+                if (pageId === 'dashboard') dashboardModule.render(state);
+                if (pageId === 'financeiro') financeiroModule.renderPage(state);
+            };
+
+            const handleAuthState = (user) => {
+                const loginPage = document.getElementById('login-page');
+                const appWrapper = document.getElementById('app-wrapper');
+                if (user) {
+                    state.user = user;
+                    loginPage.style.display = 'none';
+                    appWrapper.style.display = 'flex';
+                    
+                    document.getElementById('user-name').innerText = user.displayName;
+                    document.getElementById('user-photo').src = user.photoURL;
+
+                    financeiroModule.listenForTransactions(user.uid, (transactions) => {
+                        state.transactions = transactions;
+                        if(document.getElementById('page-dashboard').classList.contains('active')) {
+                             dashboardModule.render(state);
+                        }
+                        if(document.getElementById('page-financeiro').classList.contains('active')) {
+                             financeiroModule.renderPage(state);
+                        }
+                    });
+                    
+                    dashboardModule.init(state);
+                    financeiroModule.init();
+                    switchPage('dashboard', document.querySelector('#app-sidebar nav a'));
+                } else {
+                    state.user = null;
+                    loginPage.style.display = 'flex';
+                    appWrapper.style.display = 'none';
+                }
+            };
+            
+            const login = () => signInWithPopup(auth, provider).catch(error => console.error("Erro no login", error));
+            const logout = () => signOut(auth).catch(error => console.error("Erro no logout", error));
+
+            const init = () => {
+                onAuthStateChanged(auth, handleAuthState);
+                document.getElementById('login-button').addEventListener('click', login);
+                document.getElementById('logout-button').addEventListener('click', logout);
+                document.getElementById('menu-toggle').addEventListener('click', () => {
+                    document.getElementById('app-sidebar').classList.toggle('open');
+                });
+                window.app = { switchPage }; 
+            };
+            return { init, state };
+        })();
+        
+        // --- MÓDULO DASHBOARD ---
+        const dashboardModule = (() => {
+            let mainChart;
+            const init = (state) => {
+                const page = document.getElementById('page-dashboard');
+                page.innerHTML = `<h1 class="card-title">Dashboard</h1><div class="card"><div class="card-content" id="dashboard-summary"></div></div><div class="card"><div class="card-header"><h2 class="card-title">Balanço Anual</h2></div><div class="card-content"><div style="height: 300px;"><canvas id="main-chart"></canvas></div></div></div>`;
+                const ctx = document.getElementById('main-chart').getContext('2d');
+                mainChart = new Chart(ctx, { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
+            };
+            const render = (state) => {
+                 const currentMonth = new Date().getMonth() + 1;
+                const currentYear = new Date().getFullYear().toString();
+                const financeSummary = financeiroModule.getSummary(state.transactions, currentMonth.toString(), currentYear);
+                
+                document.getElementById('dashboard-summary').innerHTML = `<div class="summary-grid"><div class="summary-box balance"><h3>Saldo do Mês</h3><p>${financeiroModule.formatBRL(financeSummary.balance)}</p></div><div class="summary-box revenue"><h3>Receitas no Mês</h3><p>${financeiroModule.formatBRL(financeSummary.revenue)}</p></div><div class="summary-box expense"><h3>Despesas no Mês</h3><p>${financeiroModule.formatBRL(Math.abs(financeSummary.expense))}</p></div></div>`;
+                
+                const monthlyData = financeiroModule.getMonthlyBalance(state.transactions, currentYear);
+                mainChart.data.labels = monthlyData.labels;
+                mainChart.data.datasets = [
+                    { label: 'Receitas', data: monthlyData.revenues, backgroundColor: 'rgba(79, 70, 229, 0.8)', borderRadius: 4 },
+                    { label: 'Despesas', data: monthlyData.expenses, backgroundColor: 'rgba(229, 231, 235, 1)', borderRadius: 4 }
+                ];
+                mainChart.update();
+            };
+            return { init, render };
+        })();
+
+        // --- MÓDULO FINANCEIRO ---
+        const financeiroModule = (() => {
+            let transactionType = 'revenue';
+            let monthlyChart, categoryChart;
+
+            const formatBRL = (value) => (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const parseCurrency = (value) => parseFloat(String(value).replace(/\./g, '').replace(',', '.')) || 0;
+            const formatCurrencyInput = (input) => {
+                let value = input.value.replace(/\D/g, '');
+                input.value = value === '' ? '' : (parseFloat(value) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            };
+            
+            const getSummary = (transactions, month, year) => {
+                 const filtered = filterTransactions(transactions, month, year);
+                 const summary = filtered.reduce((acc, t) => { if (t.amount > 0) acc.revenue += t.amount; else acc.expense += t.amount; return acc; }, { revenue: 0, expense: 0 });
+                summary.balance = summary.revenue + summary.expense;
+                return summary;
+            };
+
+            const getMonthlyBalance = (transactions, year) => {
+                const monthlyData = { labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"], revenues: Array(12).fill(0), expenses: Array(12).fill(0) };
+                (transactions || []).filter(t => new Date(t.date + 'T00:00:00').getFullYear().toString() === year).forEach(t => {
+                    const month = new Date(t.date + 'T00:00:00').getMonth();
+                    if (t.amount > 0) monthlyData.revenues[month] += t.amount; else monthlyData.expenses[month] += Math.abs(t.amount);
+                });
+                return monthlyData;
+            }
+
+            const renderPage = (state) => {
+                const page = document.getElementById('page-financeiro');
+                if(page.innerHTML === '') { // Renderiza o HTML apenas uma vez
+                    page.innerHTML = `
+                    <div class="card"><div class="card-header"><h2 class="card-title">Dashboard Financeiro</h2><div class="filters"><select id="month-filter"></select><select id="year-filter"></select></div></div><div class="card-content"><div class="summary-grid"><div class="summary-box balance"><h3>Saldo</h3><p id="summary-balance">R$ 0,00</p></div><div class="summary-box revenue"><h3>Receitas</h3><p id="summary-revenue">R$ 0,00</p></div><div class="summary-box expense"><h3>Despesas</h3><p id="summary-expense">R$ 0,00</p></div></div></div></div>
+                    <div class="card"><div class="card-header"><h2 class="card-title">Análise Visual</h2></div><div class="card-content"><div class="charts-grid"><div class="chart-container"><canvas id="monthly-chart-finance"></canvas></div><div class="chart-container"><canvas id="category-chart-finance"></canvas></div></div></div></div>
+                    <div class="card"><div class="card-header"><h3 id="form-title" class="card-title">Nova Transação</h3></div><div class="card-content"><form id="transaction-form"><input type="hidden" id="transaction-id"><div class="form-grid"><div class="form-group" style="grid-column: 1 / -1;"><label for="description">Descrição</label><input type="text" id="description" required></div><div class="form-group"><label for="amount">Valor</label><input type="text" id="amount" required></div><div class="form-group"><label for="category">Categoria</label><select id="category" required><option>Vendas</option><option>Serviços</option><option>Salários</option><option>Fornecedores</option><option>Marketing</option><option>Aluguel</option><option>Contas</option><option>Outros</option></select></div><div class="form-group"><label for="date">Data</label><input type="date" id="date" required></div><div class="form-group"><label>Tipo</label><div class="type-toggle"><button type="button" id="type-revenue" class="type-toggle-btn revenue active">Receita</button><button type="button" id="type-expense" class="type-toggle-btn expense">Despesa</button></div></div></div><div class="form-grid" style="margin-top: 20px;"><button type="submit" id="submit-button" class="btn btn-primary">Adicionar Lançamento</button></div></form></div></div>
+                    <div class="card"><div class="card-header"><h2 class="card-title">Histórico</h2></div><div class="card-content" style="padding:0;"><div class="table-container"><table class="transaction-table"><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody id="transaction-list"></tbody></table></div></div></div>`;
+
+                    monthlyChart = new Chart(document.getElementById('monthly-chart-finance').getContext('2d'), { type: 'bar', options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Balanço Mensal' } } } });
+                    categoryChart = new Chart(document.getElementById('category-chart-finance').getContext('2d'), { type: 'doughnut', options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Despesas por Categoria' } } } });
+                    
+                    document.getElementById('amount').addEventListener('input', (e) => formatCurrencyInput(e.target));
+                    document.getElementById('date').valueAsDate = new Date();
+                    document.getElementById('transaction-form').addEventListener('submit', handleSubmit);
+                    document.getElementById('type-revenue').addEventListener('click', () => setType('revenue'));
+                    document.getElementById('type-expense').addEventListener('click', () => setType('expense'));
+                    document.getElementById('month-filter').addEventListener('change', () => render(state));
+                    document.getElementById('year-filter').addEventListener('change', () => render(state));
+                    populateFilters();
+                }
+                render(state);
+            };
+            
+            const handleSubmit = (e) => { e.preventDefault(); addTransaction(); };
+            const setType = (type) => { transactionType = type; document.getElementById('type-revenue').classList.toggle('active', type==='revenue'); document.getElementById('type-expense').classList.toggle('active', type==='expense'); };
+            const addTransaction = async () => {
+                const amount = parseCurrency(document.getElementById('amount').value);
+                if (!document.getElementById('description').value || amount <= 0 || !document.getElementById('date').value) { alert("Preencha todos os campos."); return; }
+                if (!app.state.user) { alert("Usuário não autenticado."); return; }
+                await addDoc(collection(db, "users", app.state.user.uid, "transactions"), {
+                    description: document.getElementById('description').value,
+                    amount: transactionType === 'expense' ? -amount : amount,
+                    category: document.getElementById('category').value,
+                    date: document.getElementById('date').value
+                });
+                document.getElementById('transaction-form').reset();
+            };
+            const filterTransactions = (month, year) => {
+                return (app.state.transactions || []).filter(t => {
+                    const date = new Date(t.date + 'T00:00:00');
+                    const yearMatch = year === 'all' || date.getFullYear().toString() === year;
+                    const monthMatch = month === 'all' || (date.getMonth() + 1).toString() === month;
+                    return yearMatch && monthMatch;
+                });
+            };
+            const render = (state) => {
+                const { month, year } = { month: document.getElementById('month-filter').value, year: document.getElementById('year-filter').value };
+                const filtered = filterTransactions(month, year);
+                const summary = getSummary(state.transactions, month, year);
+                document.getElementById('summary-balance').innerText = formatBRL(summary.balance);
+                document.getElementById('summary-revenue').innerText = formatBRL(summary.revenue);
+                document.getElementById('summary-expense').innerText = formatBRL(Math.abs(summary.expense));
+                const list = document.getElementById('transaction-list');
+                list.innerHTML = '';
+                if (filtered.length === 0) { list.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">Nenhuma transação.</td></tr>'; }
+                else { filtered.forEach(t => { const row = document.createElement('tr'); const valueClass = t.amount > 0 ? 'revenue' : 'expense'; row.innerHTML = `<td>${new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${t.description}</td><td class="value-cell ${valueClass}">${formatBRL(t.amount)}</td>`; list.appendChild(row); }); }
+                updateCharts(filtered, year);
+            };
+            const populateFilters = () => { 
+                const monthFilter = document.getElementById('month-filter');
+                const yearFilter = document.getElementById('year-filter');
+                const currentYear = new Date().getFullYear(), currentMonth = new Date().getMonth() + 1;
+                monthFilter.innerHTML = '<option value="all">Todos os Meses</option>';
+                ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].forEach((m, i) => { const opt = document.createElement('option'); opt.value = i + 1; opt.innerText = m; if ((i + 1) === currentMonth) opt.selected = true; monthFilter.appendChild(opt); });
+                yearFilter.innerHTML = '<option value="all">Todos os Anos</option>';
+                for (let y = currentYear; y >= currentYear - 5; y--) { const opt = document.createElement('option'); opt.value = y; opt.innerText = y; if (y === currentYear) opt.selected = true; yearFilter.appendChild(opt); }
+            };
+            const updateCharts = (filteredTransactions, year) => { 
+                const yearToFilter = year === 'all' ? new Date().getFullYear().toString() : year;
+                const monthlyBalance = getMonthlyBalance(app.state.transactions, yearToFilter);
+                monthlyChart.data.labels = monthlyBalance.labels;
+                monthlyChart.data.datasets = [ { label: 'Receitas', data: monthlyBalance.revenues, backgroundColor: '#16a34a' }, { label: 'Despesas', data: monthlyBalance.expenses, backgroundColor: '#dc2626' }];
+                monthlyChart.options.plugins.title.text = `Balanço Mensal de ${yearToFilter}`; monthlyChart.update();
+                const expensesByCategory = filteredTransactions.filter(t => t.amount < 0).reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount); return acc; }, {});
+                categoryChart.data.labels = Object.keys(expensesByCategory);
+                categoryChart.data.datasets = [{ data: Object.values(expensesByCategory), backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4'] }];
+                categoryChart.update();
+            };
+            
+            const listenForTransactions = (userId, callback) => {
+                const q = query(collection(db, "users", userId, "transactions"), orderBy("date", "desc"));
+                onSnapshot(q, (querySnapshot) => {
+                    const transactions = [];
+                    querySnapshot.forEach((doc) => transactions.push({ id: doc.id, ...doc.data() }));
+                    callback(transactions);
+                });
+            };
+
+            const init = () => {};
+            
+            return { init, getSummary, getMonthlyBalance, listenForTransactions, renderPage, formatBRL };
+        })();
+        
+        // --- INICIALIZAÇÃO GERAL ---
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
